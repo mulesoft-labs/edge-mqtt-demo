@@ -8,21 +8,39 @@
         http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
         http://www.mulesoft.org/schema/mule/mqtt http://www.mulesoft.org/schema/mule/mqtt/current/mule-mqtt.xsd">
 
+    <configuration>
+        <expression-language>
+            <import class="org.mule.util.StringUtils" />
+        </expression-language>
+    </configuration>
+
     <mqtt:config name="mqttClient" brokerServerUri="${mqttBrokerServerUri}"
-        clientId="muleClient-${qrCodeReaderId}">
+        clientId="booth-reader-${boothId}">
         <reconnect-forever frequency="5000" />
     </mqtt:config>
 
     <flow name="fileToMqttBridge">
         <file:inbound-endpoint path="/tmp/mule/in" />
 
-        <!-- extract UUID and transform to JSON payload -->
-        <set-variable variableName="uuid" value="#[org.mule.util.StringUtils.strip(org.mule.util.StringUtils.substringAfter(message.payloadAs(java.lang.String), 'QR-Code:'))]" />
-        <expression-transformer expression="#[['readerId' : '${qrCodeReaderId}', 'uuid' : uuid]]" />
+        <object-to-string-transformer />
+
+        <!-- extract attendee info and transform to JSON payload -->
+        <expression-component><![CDATA[
+            csv = StringUtils.strip(StringUtils.substringAfter(payload, 'QR-Code:'));
+            data = StringUtils.splitAndTrim(csv, ',');
+            flowVars.attendeeId = data[0];
+            message.payload =
+              [
+               'attendeeId' : data[0],
+               'fullName' : data[1],
+               'companyName' : data[2],
+               'email' : data[3]
+              ];
+        ]]></expression-component>
         <json:object-to-json-transformer />
 
-        <mqtt:publish topicName="scans/uuids" />
+        <mqtt:publish topicName="scans/booths" />
 
-        <logger level="INFO" message="Published UUID: #[uuid]" />
+        <logger level="INFO" message="Booth ${boothId} has scanned attendee #[attendeeId]" />
     </flow>
 </mule>

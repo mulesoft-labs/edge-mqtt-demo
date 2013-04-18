@@ -9,3 +9,4 @@ while True:
         f = tempfile.NamedTemporaryFile(dir='/tmp/mule/in', delete=False)
         f.write(data)
         f.close()
+        print 'Wrote %s to %s' % (data, f.name)
