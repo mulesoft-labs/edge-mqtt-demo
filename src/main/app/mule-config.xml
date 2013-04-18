@@ -31,10 +31,11 @@
             flowVars.attendeeId = data[0];
             message.payload =
               [
-               'attendeeId' : data[0],
-               'fullName' : data[1],
+               'boothId':      '${boothId}',
+               'attendeeId' :  data[0],
+               'fullName' :    data[1],
                'companyName' : data[2],
-               'email' : data[3]
+               'email' :       data[3]
               ];
         ]]></expression-component>
         <json:object-to-json-transformer />
