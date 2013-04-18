@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:json="http://www.mulesoft.org/schema/mule/json"
+    xmlns:mqtt="http://www.mulesoft.org/schema/mule/mqtt"
+    xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+        http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+        http://www.mulesoft.org/schema/mule/mqtt http://www.mulesoft.org/schema/mule/mqtt/current/mule-mqtt.xsd">
+
+    <mqtt:config name="mqttClient" brokerServerUri="${mqttBrokerServerUri}"
+        clientId="muleClient-${qrCodeReaderId}">
+        <reconnect-forever frequency="5000" />
+    </mqtt:config>
+
+    <flow name="fileToMqttBridge">
+        <file:inbound-endpoint path="/tmp/mule/in" />
+
+        <!-- extract UUID and transform to JSON payload -->
+        <set-variable variableName="uuid" value="#[org.mule.util.StringUtils.strip(org.mule.util.StringUtils.substringAfter(message.payloadAs(java.lang.String), 'QR-Code:'))]" />
+        <expression-transformer expression="#[['readerId' : '${qrCodeReaderId}', 'uuid' : uuid]]" />
+        <json:object-to-json-transformer />
+
+        <mqtt:publish topicName="scans/uuids" />
+
+        <logger level="INFO" message="Published UUID: #[uuid]" />
+    </flow>
+</mule>
