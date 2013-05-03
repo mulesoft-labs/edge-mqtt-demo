@@ -10,7 +10,7 @@
 
     <configuration>
         <expression-language>
-            <import class="org.mule.util.StringUtils" />
+            <global-functions file="qrcode_data_to_map.mel" />
         </expression-language>
     </configuration>
 
@@ -25,23 +25,12 @@
         <object-to-string-transformer />
 
         <!-- extract attendee info and transform to JSON payload -->
-        <expression-component><![CDATA[
-            csv = StringUtils.strip(StringUtils.substringAfter(payload, 'QR-Code:'));
-            data = StringUtils.splitAndTrim(csv, ',');
-            flowVars.attendeeId = data[0];
-            message.payload =
-              [
-               'boothId':      '${boothId}',
-               'attendeeId' :  data[0],
-               'fullName' :    data[1],
-               'companyName' : data[2],
-               'email' :       data[3]
-              ];
-        ]]></expression-component>
+        <expression-transformer expression="#[extractAttendeeData(message.payload)]" />
         <json:object-to-json-transformer />
 
         <mqtt:publish topicName="scans/booths" />
 
-        <logger level="INFO" message="Booth ${boothId} has scanned attendee #[attendeeId]" />
+        <logger level="INFO"
+            message="Booth ${boothId} has scanned attendee #[attendeeId]" />
     </flow>
 </mule>
