@@ -1,11 +1,11 @@
 import org.mule.util.StringUtils;
 
-def extractAttendeeData(payload) {
+def extractAttendeeData(payload, boothId) {
     csv = StringUtils.strip(StringUtils.substringAfter(payload, 'QR-Code:'));
     data = StringUtils.splitAndTrim(csv, ',');
     flowVars.attendeeId = data[0];
     [
-       'boothId':      '${boothId}',
+       'boothId':      boothId,
        'attendeeId' :  data[0],
        'fullName' :    data[1],
        'companyName' : data[2],
