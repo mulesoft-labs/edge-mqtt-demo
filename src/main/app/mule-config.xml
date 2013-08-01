@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:json="http://www.mulesoft.org/schema/mule/json"
     xmlns:mqtt="http://www.mulesoft.org/schema/mule/mqtt" xmlns:blink1="http://www.mulesoft.org/schema/mule/blink1"
     xmlns:spring="http://www.springframework.org/schema/beans" xmlns:c="http://www.springframework.org/schema/c"
     xmlns:p="http://www.springframework.org/schema/p"
-    xsi:schemaLocation="
-        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-        http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
-        http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
-        http://www.mulesoft.org/schema/mule/mqtt http://www.mulesoft.org/schema/mule/mqtt/current/mule-mqtt.xsd
-        http://www.mulesoft.org/schema/mule/blink1 http://www.mulesoft.org/schema/mule/blink1/current/mule-blink1.xsd
-        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/mqtt http://www.mulesoft.org/schema/mule/mqtt/current/mule-mqtt.xsd
+http://www.mulesoft.org/schema/mule/blink1 http://www.mulesoft.org/schema/mule/blink1/current/mule-blink1.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd" version="EE-3.4.0">
 
-    <global-property name="blink1.device.id" value="0" />
+    <global-property name="blink1.device.id" value="0" doc:name="Global Property"/>
 
-    <configuration>
+    <configuration doc:name="Configuration">
         <expression-language>
             <global-functions file="qrcode_data_to_map.mel" />
         </expression-language>
@@ -23,7 +23,7 @@
     <spring:beans>
         <spring:bean name="flowInvokingContextListener"
             class="org.mule.demo.edge.FlowInvokingContextListener"
-            p:startingFlow-ref="setupBlink1" p:stoppingFlow-ref="resetBlink1" />
+              />
     </spring:beans>
 
     <notifications>
@@ -32,48 +32,45 @@
     </notifications>
 
     <mqtt:config name="mqttClient" brokerServerUri="${mqttBrokerServerUri}"
-        clientId="booth-reader-${boothId}">
+        clientId="booth-reader-${boothId}" doc:name="MQTT">
         <reconnect-forever frequency="5000" />
     </mqtt:config>
+    <blink1:config name="Blink_1_" doc:name="Blink(1)"/>
 
-    <flow name="setupBlink1">
-        <blink1:set-color deviceId="${blink1.device.id}" color="off" />
-        <blink1:clear-pattern deviceId="${blink1.device.id}" />
-        <blink1:store-pattern deviceId="${blink1.device.id}">
+    <flow name="setupBlink1" doc:name="setupBlink1">
+        <blink1:set-color deviceId="${blink1.device.id}" color="off" config-ref="Blink_1_" doc:name="Blink(1)"/>
+        <blink1:clear-pattern deviceId="${blink1.device.id}" config-ref="Blink_1_" doc:name="Blink(1)"/>
+        <blink1:store-pattern deviceId="${blink1.device.id}" config-ref="Blink_1_" doc:name="Blink(1)">
             <blink1:entries>
                 <blink1:entry color="green" duration="100" />
                 <blink1:entry color="off" duration="100" />
             </blink1:entries>
         </blink1:store-pattern>
-        <logger level="INFO" message="blink(1) initialized" />
+        <logger level="INFO" message="blink(1) initialized" doc:name="Logger"/>
     </flow>
 
-    <flow name="resetBlink1">
-        <blink1:set-color deviceId="${blink1.device.id}" color="off" />
-        <blink1:clear-pattern deviceId="${blink1.device.id}" />
-        <logger level="INFO" message="blink(1) turned off" />
+    <flow name="resetBlink1" doc:name="resetBlink1">
+        <blink1:set-color deviceId="${blink1.device.id}" color="off" config-ref="Blink_1_" doc:name="Blink(1)"/>
+        <blink1:clear-pattern deviceId="${blink1.device.id}" config-ref="Blink_1_" doc:name="Blink(1)"/>
+        <logger level="INFO" message="blink(1) turned off" doc:name="Logger"/>
     </flow>
 
-    <flow name="fileToMqttBridge">
-        <file:inbound-endpoint path="/tmp/mule/in" />
-
-        <object-to-string-transformer />
+    <flow name="ReadScanAndSend" doc:name="ReadScanAndSend">
+        <file:inbound-endpoint path="/tmp/mule/in" doc:name="Receive badge scan" responseTimeout="10000"/>
 
         <!-- extract attendee info and transform to JSON payload -->
-        <expression-transformer
-            expression="#[extractAttendeeData(message.payload, '${boothId}')]" />
-        <json:object-to-json-transformer />
+        <expression-transformer 
+            expression="#[extractAttendeeData(message.payloadAsString(), '${boothId}')]" doc:name="Exstact Attendee Data"/>
+        <json:object-to-json-transformer doc:name="Serialise to JSON"/>
 
-        <mqtt:publish topicName="scans/booths" />
-
-        <blink1:start-pattern deviceId="${blink1.device.id}" />
-
-        <logger level="INFO"
-            message="Booth ${boothId} has scanned attendee #[attendeeId]" />
-
-        <expression-component>Thread.sleep(1000);</expression-component>
-
-        <blink1:stop-pattern deviceId="${blink1.device.id}" />
-        <blink1:set-color deviceId="${blink1.device.id}" color="off" />
+        <mqtt:publish topicName="scans/booths" config-ref="mqttClient" doc:name="publish to scans/booths"/>
+        <flow-ref name="Notify" doc:name="Notify "/>
     </flow>
+    <sub-flow name="Notify" doc:name="Notify">
+        <logger message="Booth ${boothId} has scanned attendee #[attendeeId]" level="INFO" doc:name="Scanned Attendee"/>
+        <blink1:start-pattern config-ref="Blink_1_" deviceId="${blink1.device.id}" doc:name="Start pattern"/>
+        <expression-component doc:name="wait for 1 second"><![CDATA[Thread.sleep(1000);]]></expression-component>
+        <blink1:stop-pattern config-ref="Blink_1_" deviceId="${blink1.device.id}" doc:name="Stop Pattern"/>
+        <blink1:set-color config-ref="Blink_1_" deviceId="${blink1.device.id}" color="off" doc:name="Turn off"/>
+    </sub-flow>
 </mule>
